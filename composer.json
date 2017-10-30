@@ -1,5 +1,5 @@
 {
-    "name": "sackrin/model-meta",
+    "name": "sackrin/laravel-meta-fields",
     "type": "library",
     "description": "Customisable meta fields for laravel models",
     "keywords": ["laravel","meta-fields"],
