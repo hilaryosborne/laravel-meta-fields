@@ -1,10 +1,10 @@
 <?php
 
-namespace LMF;
+namespace Sackrin\Meta;
 
 use Illuminate\Support\ServiceProvider;
 
-class LMFServiceProvider extends ServiceProvider {
+class MetaFieldsServiceProvider extends ServiceProvider {
 
     /**
      * Bootstrap the application services.
@@ -22,14 +22,14 @@ class LMFServiceProvider extends ServiceProvider {
     }
 
     /**
-     * Register LMF's migration files.
+     * Register Sackrin\Meta's migration files.
      *
      * @return void
      */
     protected function registerMigrations()
     {
 
-        if (LMF::$runsMigrations) {
+        if (MetaFields::$runsMigrations) {
             return $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         }
 

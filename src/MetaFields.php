@@ -1,8 +1,8 @@
 <?php
 
-namespace LMF;
+namespace Sackrin\Meta;
 
-class LMF {
+class MetaFields {
 
     /**
      * Indicates if Passport migrations will be run.

@@ -32,13 +32,13 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LMF\\LMFServiceProvider"
+                "Sackrin\\Meta\\MetaFieldsServiceProvider"
             ]
         }
     },
     "autoload": {
         "psr-0": {
-            "LMF": "src"
+            "Sackrin\\Meta": "src"
         }
     }
 }
