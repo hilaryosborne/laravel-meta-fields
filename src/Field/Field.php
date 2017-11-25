@@ -4,13 +4,15 @@ namespace Sackrin\Meta\Field;
 
 abstract class Field {
 
-    public $parent;
+    public $parentField;
 
     public $options = [];
 
-    public $index = null;
+    public $value;
 
-    public $breadcrumb = '';
+    public $position;
+
+    public $hydrated = false;
 
     public static $defaults = [
         'machine' => '',
@@ -25,28 +27,29 @@ abstract class Field {
         $this->options = static::$defaults;
         // Update the field options values
         $this->options['machine'] = $machine;
-        // Update the field options values
-        $this->breadcrumb = $this->getBreadcrumb();
     }
 
-    public function setParent($parent) {
-        // Save the parent for future use
-        $this->parent = $parent;
-        // Update the field options values
-        $this->breadcrumb = $this->getBreadcrumb();
+    public function setParentField($parentField) {
+        // Save the parentField for future use
+        $this->parentField = $parentField;
         // Return for chaining
         return $this;
     }
 
-    public function getBreadcrumb() {
+    public function getPath() {
         // Determine the machine code
-        $machine = $this->index !== null ? $this->options['machine'].'.'.$this->options['machine'] : $this->options['machine'];
-        // If a parent object was returned
-        if ($this->parent) {
-            // Merge with the parent's code
-            return $this->parent->getBreadcrumb().'.'.$machine;
+        $machine = $this->options['machine'];
+        // If a parentField object was returned
+        if ($this->parentField) {
+            // Merge with the parentField's code
+            return $this->parentField->getChildPath($this);
         } // Otherwise return the standard key
         else { return $machine; }
+    }
+
+    public function getMachine() {
+        // Update the field options values
+        return $this->options['machine'];
     }
 
     public function setOptions($options) {
@@ -77,9 +80,35 @@ abstract class Field {
         return $this;
     }
 
-    public function tooptions() {
-        // Return the field's options
-        return $this->options;
+    public function setHydrated($value) {
+        // Populate the value
+        $this->hydrated = $value;
+        // Return for chaining
+        return $this;
+    }
+
+    public function getPosition() {
+
+        return $this->position;
+    }
+
+    public function setPosition($position) {
+        // Populate the value
+        $this->position = $position;
+        // Return for chaining
+        return $this;
+    }
+
+    public function setValue($value) {
+        // Populate the value
+        $this->value = $value;
+        // Return for chaining
+        return $this;
+    }
+
+    public function toIndex($collection) {
+        // Set the field in the index collection
+        $collection->put($this->getPath(), $this);
     }
 
     public function copy() {
@@ -91,10 +120,18 @@ abstract class Field {
         return $instance;
     }
 
-    abstract public function validate();
+    public function hydrate($value) {
+        // Create a copy to hydrate
+        $hydrated = $this->copy();
+        // Hydrate the field
+        $hydrated->setValue($value);
+        // Set that this is a hydrated field
+        $hydrated->setHydrated(true);
+        // Return the text value
+        return $hydrated;
+    }
 
-    abstract public function inject($data,$prefix=false);
+    abstract public function getValue($formatted=true);
 
-    abstract public function values();
 
 }

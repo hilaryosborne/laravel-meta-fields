@@ -11,8 +11,8 @@ trait HasMetaFields {
         static::observe(new MetaFieldManage());
     }
 
-    public function meta()
-    {
+    public function meta() {
+
         return $this->hasMany(static::$metaModel);
     }
 

@@ -14,9 +14,7 @@ class Group extends Field {
 
     public static $type = 'group';
 
-    public $value = [];
-
-    public $fields;
+    public $fields = [];
 
     public function __construct($machine) {
         // Call the parent constructor
@@ -25,29 +23,52 @@ class Group extends Field {
         $this->fields = collect([]);
     }
 
+    public function getChildPath($field) {
+
+        return $this->getPath().'.'.$field->getMachine();
+    }
+
     public function addField($field) {
         // Set the field parent
-        $field->setParent($this);
+        $field->setParentField($this);
         // Add to the fields collection
         $this->fields->push($field);
         // Return for chaining
         return $this;
     }
 
-    public function validate() {
-
-        return true;
+    public function toIndex($collection) {
+        // Set the field in the index collection
+        $collection->put($this->getPath(), $this);
+        // Loop through each of the sub fields
+        foreach ($this->fields as $k => $field) {
+            // Convert the sub field to index
+            $field->toIndex($collection);
+        }
     }
 
-    public function inject($data,$parent=false,$prefix=false) {
-
-        $clone = $this->copy();
-
-        $clone->setParent($parent);
-    }
-
-    public function values() {
+    public function hydrate($values) {
+        // Create a copy to hydrate
+        $hydrated = $this->copy();
+        // Loop through each of the fields
+        foreach ($this->fields as $k => $field) {
+            // Retrieve the field machine code
+            $fieldMachine = $field->getMachine();
+            // Retrieve the field value
+            $fieldValue = isset($values[$fieldMachine]) ? $values[$fieldMachine] : null;
+            // Hydrate the field
+            $hydratedField = $field->hydrate($fieldValue);
+            // Add the field into the hydrated group
+            $hydrated->addField($hydratedField);
+        }
+        // Set that this is a hydrated field
+        $hydrated->setHydrated(true);
         // Return the text value
+        return $hydrated;
+    }
+
+    public function getValue($formatted=true) {
+        // Initially just return a raw value
         return $this->value;
     }
 

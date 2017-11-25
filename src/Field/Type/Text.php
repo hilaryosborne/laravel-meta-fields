@@ -22,20 +22,8 @@ class Text extends Field {
 
     public $value = '';
 
-    public function validate() {
-
-        return true;
-    }
-
-    public function inject($data,$parent=false,$prefix=false) {
-
-        $clone = $this->copy();
-
-        $clone->setParent($parent);
-    }
-
-    public function values() {
-        // Return the text value
+    public function getValue($formatted=true) {
+        // Initially just return a raw value
         return $this->value;
     }
 }
