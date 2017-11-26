@@ -139,6 +139,16 @@ abstract class Field {
         return $this;
     }
 
+    public static function serialize($value) {
+
+        return $value;
+    }
+
+    public static function unserialize($value) {
+
+        return $value;
+    }
+
     public function getHydratedField($value) {
         // Create a copy to hydrate
         $hydrated = $this->cloneField();

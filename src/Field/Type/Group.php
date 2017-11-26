@@ -127,6 +127,16 @@ class Group extends Field {
         return $cloned;
     }
 
+    public static function serialize($value) {
+
+        return count($value);
+    }
+
+    public static function unserialize($value) {
+
+        return null;
+    }
+
     public function getValue($formatted=true) {
         // Initially just return a raw value
         return $this->value;
