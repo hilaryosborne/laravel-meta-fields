@@ -59,6 +59,11 @@ abstract class Field {
         return $this;
     }
 
+    public function getOptions() {
+
+        return $this->options;
+    }
+
     public function setInstructions($instructions) {
         // Set the setting option value
         $this->options['instructions'] = $instructions;
@@ -71,6 +76,11 @@ abstract class Field {
         $this->options['required'] = $required;
         // Return for chaining
         return $this;
+    }
+
+    public function getDefault() {
+
+        return $this->options['default_value'];
     }
 
     public function setDefault($default) {
@@ -87,6 +97,11 @@ abstract class Field {
         return $this;
     }
 
+    public function getHydrated() {
+
+        return $this->hydrated;
+    }
+
     public function getPosition() {
 
         return $this->position;
@@ -99,32 +114,36 @@ abstract class Field {
         return $this;
     }
 
-    public function setValue($value) {
-        // Populate the value
-        $this->value = $value;
-        // Return for chaining
-        return $this;
-    }
-
     public function toIndex($collection) {
         // Set the field in the index collection
         $collection->put($this->getPath(), $this);
     }
 
-    public function copy() {
+    public function cloneField() {
         // Create a new instance of this field object
-        $instance = new static($this->options['machine']);
-        // Inject the new options
-        $instance->setOptions($this->options);
+        $instance = new static($this->getMachine());
+        // Inject the cloned options
+        $instance->setOptions($this->getOptions());
+        // Inject the cloned values
+        $instance->setValue($this->getValue());
+        // Inject the cloned hydration state
+        $instance->setHydrated($this->getHydrated());
         // Return the copied instance
         return $instance;
     }
 
-    public function hydrate($value) {
+    public function setValue($value) {
+        // Set the field value
+        $this->value = $value;
+        // Return for chaining
+        return $this;
+    }
+
+    public function getHydratedField($value) {
         // Create a copy to hydrate
-        $hydrated = $this->copy();
+        $hydrated = $this->cloneField();
         // Hydrate the field
-        $hydrated->setValue($value);
+        $hydrated->value = $value;
         // Set that this is a hydrated field
         $hydrated->setHydrated(true);
         // Return the text value

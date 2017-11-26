@@ -12,26 +12,6 @@ class Repeater extends Group {
 
     public static $type = 'repeater';
 
-    public $value = [];
-
-    public $fields = [];
-
-    public function __construct($machine) {
-        // Call the parent constructor
-        parent::__construct($machine);
-        // The field objects
-        $this->fields = collect([]);
-    }
-
-    public function addField($field) {
-        // Set the field parent
-        $field->setParentField($this);
-        // Add to the fields collection
-        $this->fields->push($field);
-        // Return for chaining
-        return $this;
-    }
-
     public function getChildPath($field) {
         // Return the path with a placeholder for the repeater child
         return $field->hydrated ? $this->getPath().'.'.$field->getPosition().'.'.$field->getMachine() : $this->getPath().'.x.'.$field->getMachine();
@@ -40,10 +20,12 @@ class Repeater extends Group {
     public function toIndex($collection) {
         // Set the field in the index collection
         $collection->put($this->getPath(), $this);
+        // Retrieve the fields which would be relevant
+        $fields = $this->getHydrated() ? $this->getFields() : $this->getTemplates() ;
 
         if ($this->hydrated) {
             // Loop through each of the sub fields
-            foreach ($this->fields as $fieldGroup) {
+            foreach ($fields as $fieldGroup) {
                 // Convert the sub field to index
                 // Loop through each of the sub fields
                 foreach ($fieldGroup as $field) {
@@ -53,44 +35,46 @@ class Repeater extends Group {
             }
         } else {
             // Loop through each of the sub fields
-            foreach ($this->fields as $k => $field) {
+            foreach ($fields as $k => $field) {
                 // Convert the sub field to index
                 $field->toIndex($collection);
             }
         }
     }
 
-    public function hydrate($values) {
+    public function getHydratedField($values,$test=false) {
         // Create a copy to hydrate
-        $hydrated = $this->copy();
-
-        $hydrated->fields = collect([]);
-        // Loop through each of the fields
+        $cloned = $this->cloneField();
+        // Reset the fields to an empty collection
+        $cloned->setFields(collect([]));
+        // Loop through each of the provided value groups
         foreach ($values as $k => $valueGroup) {
 
             $fieldGroup = collect([]);
 
-            foreach ($this->fields as $_k => $field) {
+            foreach ($this->getTemplates() as $_k => $field) {
                 // Retrieve the field machine code
                 $fieldMachine = $field->getMachine();
                 // Retrieve the field value
                 $fieldValue = isset($valueGroup[$fieldMachine]) ? $valueGroup[$fieldMachine] : null;
                 // Hydrate the field
-                $hydratedField = $field->hydrate($fieldValue);
+                $clonedField = $field->getHydratedField($fieldValue);
                 // Set the field parent
-                $hydratedField->setParentField($this);
+                $clonedField->setParentField($cloned);
 
-                $hydratedField->position = $k;
+                $clonedField->position = $k;
                 // Add the field into the hydrated group
-                $fieldGroup->push($hydratedField);
+                $fieldGroup->push($clonedField);
             }
-
-            $hydrated->fields->push($fieldGroup);
+            // Push the field into the cloned field object
+            $cloned->getFields()->push($fieldGroup);
         }
-        // Set that this is a hydrated field
-        $hydrated->setHydrated(true);
-        // Return the text value
-        return $hydrated;
+        // Inject the raw new values
+        $cloned->setValue($values);
+        // Set that this is a hydrated field object
+        $cloned->setHydrated(true);
+        // Return the cloned instance value
+        return $cloned;
     }
 
     public function getValue($formatted=true) {

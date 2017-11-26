@@ -16,11 +16,15 @@ class Group extends Field {
 
     public $fields = [];
 
+    public $templates = [];
+
     public function __construct($machine) {
         // Call the parent constructor
         parent::__construct($machine);
         // The field objects
         $this->fields = collect([]);
+        // The field objects
+        $this->templates = collect([]);
     }
 
     public function getChildPath($field) {
@@ -28,11 +32,61 @@ class Group extends Field {
         return $this->getPath().'.'.$field->getMachine();
     }
 
+    public function setFields($fields) {
+        // Set the new template collection
+        $this->fields = collect($fields);
+        // Return for chaining
+        return $this;
+    }
+
+    public function getFields() {
+        // Return the template collection
+        return $this->fields;
+    }
+
+    public function setTemplates($templates) {
+        // Set the new template collection
+        $this->templates = collect($templates);
+        // Return for chaining
+        return $this;
+    }
+
+    public function getTemplates() {
+        // Return the template collection
+        return $this->templates;
+    }
+
+    public function cloneField() {
+        // Create a new instance of this field object
+        $instance = new static($this->getMachine());
+        // Inject the cloned options
+        $instance->setOptions($this->options);
+        // Inject the cloned field objects
+        $instance->setFields($this->getFields());
+        // Inject the cloned template objects
+        $instance->setTemplates($this->getTemplates());
+        // Inject the cloned values
+        $instance->setValue($this->getValue());
+        // Inject the cloned hydration state
+        $instance->setHydrated($this->getHydrated());
+        // Return the copied instance
+        return $instance;
+    }
+
     public function addField($field) {
         // Set the field parent
         $field->setParentField($this);
         // Add to the fields collection
-        $this->fields->push($field);
+        $this->getFields()->push($field);
+        // Return for chaining
+        return $this;
+    }
+
+    public function addTemplate($field) {
+        // Set the field parent
+        $field->setParentField($this);
+        // Add to the fields collection
+        $this->getTemplates()->push($field);
         // Return for chaining
         return $this;
     }
@@ -40,31 +94,37 @@ class Group extends Field {
     public function toIndex($collection) {
         // Set the field in the index collection
         $collection->put($this->getPath(), $this);
+        // Retrieve the fields which would be relevant
+        $fields = $this->getHydrated() ? $this->getFields() : $this->getTemplates() ;
         // Loop through each of the sub fields
-        foreach ($this->fields as $k => $field) {
+        foreach ($fields as $k => $field) {
             // Convert the sub field to index
             $field->toIndex($collection);
         }
     }
 
-    public function hydrate($values) {
+    public function getHydratedField($values) {
         // Create a copy to hydrate
-        $hydrated = $this->copy();
+        $cloned = $this->cloneField();
+        // Reset the fields to an empty collection
+        $cloned->setFields(collect([]));
+        // Inject the raw new values
+        $cloned->setValue($values);
         // Loop through each of the fields
-        foreach ($this->fields as $k => $field) {
+        foreach ($this->getTemplates() as $k => $field) {
             // Retrieve the field machine code
             $fieldMachine = $field->getMachine();
             // Retrieve the field value
             $fieldValue = isset($values[$fieldMachine]) ? $values[$fieldMachine] : null;
             // Hydrate the field
-            $hydratedField = $field->hydrate($fieldValue);
+            $clonedField = $field->getHydratedField($fieldValue);
             // Add the field into the hydrated group
-            $hydrated->addField($hydratedField);
+            $cloned->addField($clonedField);
         }
         // Set that this is a hydrated field
-        $hydrated->setHydrated(true);
+        $cloned->setHydrated(true);
         // Return the text value
-        return $hydrated;
+        return $cloned;
     }
 
     public function getValue($formatted=true) {

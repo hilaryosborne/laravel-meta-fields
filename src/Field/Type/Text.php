@@ -20,7 +20,7 @@ class Text extends Field {
 
     public static $type = 'text';
 
-    public $value = '';
+    public $value;
 
     public function getValue($formatted=true) {
         // Initially just return a raw value
