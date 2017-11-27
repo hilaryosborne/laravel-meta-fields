@@ -27,13 +27,6 @@ class Schema {
         return $this;
     }
 
-    public function getField($path) {
-        // Retrieve the current field index
-        $fields = $this->getFieldIndex();
-        // Retrieve the name values
-        return isset($fields[$path]) ? $fields[$path] : false;
-    }
-
     public function getTemplates() {
         // Return the template instance
         return $this->templates;
@@ -42,6 +35,14 @@ class Schema {
     public function getHydrater() {
         // Return the hydrater instance
         return $this->hydrater;
+    }
+
+    public function hydrate($values) {
+        // Hydrate the schema object with the values
+        $this->getHydrater()
+            ->hydrateFields($values);
+        // Return for chaining or future use
+        return $this;
     }
 
 }

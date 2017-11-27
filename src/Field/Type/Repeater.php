@@ -77,6 +77,40 @@ class Repeater extends Group {
         return $cloned;
     }
 
+    public function setValue($values, $rehydrate=false) {
+        // Set the field value
+        $this->value = $values;
+
+        if ($rehydrate) {
+            // Reset the fields to an empty collection
+            $this->setFields(collect([]));
+            // Loop through each of the provided value groups
+            foreach ($values as $k => $valueGroup) {
+
+                $fieldGroup = collect([]);
+
+                foreach ($this->getTemplates() as $_k => $field) {
+                    // Retrieve the field machine code
+                    $fieldMachine = $field->getMachine();
+                    // Retrieve the field value
+                    $fieldValue = isset($valueGroup[$fieldMachine]) ? $valueGroup[$fieldMachine] : null;
+                    // Hydrate the field
+                    $clonedField = $field->getHydratedField($fieldValue);
+                    // Set the field parent
+                    $clonedField->setParentField($this);
+
+                    $clonedField->position = $k;
+                    // Add the field into the hydrated group
+                    $fieldGroup->push($clonedField);
+                }
+                // Push the field into the cloned field object
+                $this->getFields()->push($fieldGroup);
+            }
+        }
+        // Return for chaining
+        return $this;
+    }
+
     public static function serialize($value) {
 
         return count($value);

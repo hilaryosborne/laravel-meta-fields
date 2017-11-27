@@ -127,6 +127,29 @@ class Group extends Field {
         return $cloned;
     }
 
+    public function setValue($values, $rehydrate=false) {
+        // Inject the raw new values
+        $this->value = $values;
+
+        if ($rehydrate) {
+            // Reset the fields to an empty collection
+            $this->setFields(collect([]));
+            // Loop through each of the fields
+            foreach ($this->getTemplates() as $k => $field) {
+                // Retrieve the field machine code
+                $fieldMachine = $field->getMachine();
+                // Retrieve the field value
+                $fieldValue = isset($values[$fieldMachine]) ? $values[$fieldMachine] : null;
+                // Hydrate the field
+                $clonedField = $field->getHydratedField($fieldValue);
+                // Add the field into the hydrated group
+                $this->addField($clonedField);
+            }
+        }
+        // Return for chaining
+        return $this;
+    }
+
     public static function serialize($value) {
 
         return count($value);

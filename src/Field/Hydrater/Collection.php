@@ -58,6 +58,8 @@ class Collection implements FieldCollection {
         }
         // Return the hydrated collection
         $this->fields = $hydrated;
+        // Rebuild the field index
+        $this->getIndexer()->build();
         // Return for chaining
         return $this;
     }
@@ -106,11 +108,11 @@ class Collection implements FieldCollection {
         // Retrieve the field object index
         $fieldObjects = $fieldIndexer->toObjects();
         // If the field does not exist then return null
-        if (!isset($fieldObjects[$path])) { return null; }
+        if (!isset($fieldObjects[$path])) { return $this; }
         // Retrieve the field object from the field indexer
         $field = $fieldObjects[$path];
         // Set the field value
-        $field->setValue($value);
+        $field->setValue($value,true);
         // Rebuild the field index
         $fieldIndexer->build();
         // Return for chaining

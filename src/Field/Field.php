@@ -132,7 +132,7 @@ abstract class Field {
         return $instance;
     }
 
-    public function setValue($value) {
+    public function setValue($value, $rehydrate=false) {
         // Set the field value
         $this->value = $value;
         // Return for chaining
