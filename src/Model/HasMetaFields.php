@@ -6,7 +6,7 @@ use Underscore\Types\Arrays;
 
 trait HasMetaFields {
 
-    public $metaFieldSchema;
+    public $metaFields;
 
     public static function bootHasMetaFields() {
 
@@ -18,6 +18,10 @@ trait HasMetaFields {
         return $this->hasMany(static::$metaModel)->orderBy('position');
     }
 
+    public function getMetaFields() {
+        return $this->metaFields ? $this->metaFields : static::fieldSchema();
+    }
+
     public function loadMetaFields() {
         // Retrieve all of the current meta objects
         $meta = $this->meta()->get();
@@ -25,11 +29,16 @@ trait HasMetaFields {
         $decoded = [];
         // Loop through each of the returned meta results
         foreach ($meta as $metaRecord) {
+            // Retrieve the field object by the route
+            $fieldObject = $this->getMetaFields()
+                ->getRoute($metaRecord->route);
+            // If no field is present then skip this value
+            if (!$fieldObject) { continue; }
             // Use array set to convert from dot notation to a multi dimensional array
-            array_set($decoded, $metaRecord->path, $metaRecord->value);
+            array_set($decoded, $metaRecord->path, $fieldObject::unserialize($metaRecord->value));
         }
         // Load the hydrated field schema instance into the fields property
-        $this->metaFieldSchema = static::fieldSchema()
+        $this->metaFields = $this->getMetaFields()
             ->hydrate($decoded);
         // Return for chaining
         return $this;
@@ -37,7 +46,7 @@ trait HasMetaFields {
 
     public function saveMetaFields() {
         // Retrieve the field objects
-        $fieldObjects = $this->metaFieldSchema
+        $fieldObjects = $this->getMetaFields()
             ->getHydrater()
             ->getIndexer()
             ->toObjects();
@@ -59,6 +68,8 @@ trait HasMetaFields {
             // Create or reuse the meta model instance
             $metaObject = $existing ? $existing : new static::$metaModel();
             // Populate the meta object values
+            $metaObject->machine = $fieldObject->getMachine();
+            $metaObject->route = $fieldObject->getRoute();
             $metaObject->path = $path;
             $metaObject->position = $position;
             $metaObject->type = $fieldObject::$type;
@@ -86,7 +97,7 @@ trait HasMetaFields {
 
     public function getMetaField($path,$format='value') {
         // Retrieve the field schema
-        $fieldSchema = $this->metaFieldSchema;
+        $fieldSchema = $this->getMetaFields();
         // Return the hydrated field
         return $fieldSchema
             ->getHydrater()
@@ -95,7 +106,7 @@ trait HasMetaFields {
 
     public function setMetaField($path,$value) {
         // Retrieve the field schema
-        $fieldSchema = $this->metaFieldSchema;
+        $fieldSchema = $this->getMetaFields();
         // Return the hydrated field
         $fieldSchema
             ->getHydrater()

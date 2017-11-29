@@ -2,6 +2,8 @@
 
 namespace Sackrin\Meta\Field\Type;
 
+use Sackrin\Meta\Field\Field;
+
 class Repeater extends Group {
 
     public static $defaults = [
@@ -12,118 +14,92 @@ class Repeater extends Group {
 
     public static $type = 'repeater';
 
-    public function getChildPath($field) {
+    public function childReference(Field $field) {
         // Return the path with a placeholder for the repeater child
-        return $field->hydrated ? $this->getPath().'.'.$field->getPosition().'.'.$field->getMachine() : $this->getPath().'.x.'.$field->getMachine();
+        return $this->getPath().'.x.'.$field->getMachine();
     }
 
-    public function toIndex($collection) {
+
+
+    public function childPath(Field $field) {
+        // Return the path with a placeholder for the repeater child
+        return $this->getPath().'.'.$field->getPosition().'.'.$field->getMachine();
+    }
+
+    public function toPath($collection) {
         // Set the field in the index collection
         $collection->put($this->getPath(), $this);
         // Retrieve the fields which would be relevant
-        $fields = $this->getHydrated() ? $this->getFields() : $this->getTemplates() ;
-
-        if ($this->hydrated) {
+        $fieldGroups = $this->getHydrated();
+        // Loop through each of the sub fields
+        foreach ($fieldGroups as $fieldGroup) {
+            // Convert the sub field to index
             // Loop through each of the sub fields
-            foreach ($fields as $fieldGroup) {
+            foreach ($fieldGroup as $field) {
                 // Convert the sub field to index
-                // Loop through each of the sub fields
-                foreach ($fieldGroup as $field) {
-                    // Convert the sub field to index
-                    $field->toIndex($collection);
-                }
-            }
-        } else {
-            // Loop through each of the sub fields
-            foreach ($fields as $k => $field) {
-                // Convert the sub field to index
-                $field->toIndex($collection);
+                $field->toPath($collection);
             }
         }
     }
 
-    public function getHydratedField($values,$test=false) {
+    public function hydrate($values) {
         // Create a copy to hydrate
         $cloned = $this->cloneField();
         // Reset the fields to an empty collection
-        $cloned->setFields(collect([]));
+        $cloned->setHydrated(collect([]));
+        // Inject the raw new values
+        $cloned->value = is_array($values) ? $values : [];
         // Loop through each of the provided value groups
         foreach ($values as $k => $valueGroup) {
-
+            // Create a new sub field group
             $fieldGroup = collect([]);
-
-            foreach ($this->getTemplates() as $_k => $field) {
+            // Loop through each of the fields
+            foreach ($this->getBlueprints() as $_k => $field) {
                 // Retrieve the field machine code
                 $fieldMachine = $field->getMachine();
                 // Retrieve the field value
                 $fieldValue = isset($valueGroup[$fieldMachine]) ? $valueGroup[$fieldMachine] : null;
                 // Hydrate the field
-                $clonedField = $field->getHydratedField($fieldValue);
-                // Set the field parent
-                $clonedField->setParentField($cloned);
-
-                $clonedField->position = $k;
+                $clonedField = $field->hydrate($fieldValue);
                 // Add the field into the hydrated group
-                $fieldGroup->push($clonedField);
+                $fieldGroup->addHydrated($clonedField);
             }
             // Push the field into the cloned field object
             $cloned->getFields()->push($fieldGroup);
         }
-        // Inject the raw new values
-        $cloned->setValue($values);
-        // Set that this is a hydrated field object
-        $cloned->setHydrated(true);
-        // Return the cloned instance value
+        // Return the text value
         return $cloned;
     }
 
-    public function setValue($values, $rehydrate=false) {
-        // Set the field value
+    public function setValue($values) {
+        // Inject the raw new values
         $this->value = $values;
-
-        if ($rehydrate) {
-            // Reset the fields to an empty collection
-            $this->setFields(collect([]));
-            // Loop through each of the provided value groups
-            foreach ($values as $k => $valueGroup) {
-
-                $fieldGroup = collect([]);
-
-                foreach ($this->getTemplates() as $_k => $field) {
-                    // Retrieve the field machine code
-                    $fieldMachine = $field->getMachine();
-                    // Retrieve the field value
-                    $fieldValue = isset($valueGroup[$fieldMachine]) ? $valueGroup[$fieldMachine] : null;
-                    // Hydrate the field
-                    $clonedField = $field->getHydratedField($fieldValue);
-                    // Set the field parent
-                    $clonedField->setParentField($this);
-
-                    $clonedField->position = $k;
-                    // Add the field into the hydrated group
-                    $fieldGroup->push($clonedField);
-                }
-                // Push the field into the cloned field object
-                $this->getFields()->push($fieldGroup);
+        // Reset the fields to an empty collection
+        $this->setHydrated(collect([]));
+        // Inject the raw new values
+        $this->value = is_array($values) ? $values : [];
+        // Loop through each of the provided value groups
+        foreach ($values as $k => $valueGroup) {
+            // Create a new sub field group
+            $fieldGroup = collect([]);
+            // Loop through each of the fields
+            foreach ($this->getBlueprints() as $_k => $field) {
+                // Retrieve the field machine code
+                $fieldMachine = $field->getMachine();
+                // Retrieve the field value
+                $fieldValue = isset($valueGroup[$fieldMachine]) ? $valueGroup[$fieldMachine] : null;
+                // Hydrate the field
+                $clonedField = $field->hydrate($fieldValue);
+                // Set the field position
+                $clonedField->setPosition($k);
+                // Add the field into the hydrated group
+                $fieldGroup->addHydrated($clonedField);
             }
+            // Push the field into the cloned field object
+            $this->getFields()->push($fieldGroup);
         }
         // Return for chaining
         return $this;
-    }
-
-    public static function serialize($value) {
-
-        return count($value);
-    }
-
-    public static function unserialize($value) {
-
-        return null;
-    }
-
-    public function getValue($formatted=true) {
-        // Initially just return a raw value
-        return $this->value;
     }
 
 }

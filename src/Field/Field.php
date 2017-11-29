@@ -12,7 +12,9 @@ abstract class Field {
 
     public $position;
 
-    public $hydrated = false;
+    public $isHydrated = false;
+
+    public $isBlueprint = false;
 
     public static $defaults = [
         'machine' => '',
@@ -36,13 +38,31 @@ abstract class Field {
         return $this;
     }
 
+    public function setOptions($options) {
+        // Update the options with the options
+        $this->options = array_merge($this->options, $options);
+        // Return for chaining
+        return $this;
+    }
+
     public function getPath() {
         // Determine the machine code
         $machine = $this->options['machine'];
         // If a parentField object was returned
         if ($this->parentField) {
             // Merge with the parentField's code
-            return $this->parentField->getChildPath($this);
+            return $this->parentField->childPath($this);
+        } // Otherwise return the standard key
+        else { return $machine; }
+    }
+
+    public function getReference() {
+        // Determine the machine code
+        $machine = $this->options['machine'];
+        // If a parentField object was returned
+        if ($this->parentField) {
+            // Merge with the parentField's code
+            return $this->parentField->childReference($this);
         } // Otherwise return the standard key
         else { return $machine; }
     }
@@ -50,13 +70,6 @@ abstract class Field {
     public function getMachine() {
         // Update the field options values
         return $this->options['machine'];
-    }
-
-    public function setOptions($options) {
-        // Update the options with the options
-        $this->options = array_merge($this->options, $options);
-        // Return for chaining
-        return $this;
     }
 
     public function getOptions() {
@@ -90,18 +103,6 @@ abstract class Field {
         return $this;
     }
 
-    public function setHydrated($value) {
-        // Populate the value
-        $this->hydrated = $value;
-        // Return for chaining
-        return $this;
-    }
-
-    public function getHydrated() {
-
-        return $this->hydrated;
-    }
-
     public function getPosition() {
 
         return $this->position;
@@ -114,7 +115,12 @@ abstract class Field {
         return $this;
     }
 
-    public function toIndex($collection) {
+    public function toReference($collection) {
+        // Set the field in the index collection
+        $collection->put($this->getReference(), $this);
+    }
+
+    public function toPath($collection) {
         // Set the field in the index collection
         $collection->put($this->getPath(), $this);
     }
@@ -126,13 +132,26 @@ abstract class Field {
         $instance->setOptions($this->getOptions());
         // Inject the cloned values
         $instance->setValue($this->getValue());
-        // Inject the cloned hydration state
-        $instance->setHydrated($this->getHydrated());
+        // Ensue this field is set as a blueprint
+        $instance->isBlueprint = $this->isBlueprint;
+        $instance->isHydrated = $this->isHydrated;
         // Return the copied instance
         return $instance;
     }
 
-    public function setValue($value, $rehydrate=false) {
+    public function hydrate($value) {
+        // Create a copy to hydrate
+        $instance = $this->cloneField();
+        // Hydrate the field
+        $instance->value = $value;
+        // Ensue this field is set as a blueprint
+        $instance->isBlueprint = false;
+        $instance->isHydrated = true;
+        // Return the text value
+        return $instance;
+    }
+
+    public function setValue($value) {
         // Set the field value
         $this->value = $value;
         // Return for chaining
@@ -147,17 +166,6 @@ abstract class Field {
     public static function unserialize($value) {
 
         return $value;
-    }
-
-    public function getHydratedField($value) {
-        // Create a copy to hydrate
-        $hydrated = $this->cloneField();
-        // Hydrate the field
-        $hydrated->value = $value;
-        // Set that this is a hydrated field
-        $hydrated->setHydrated(true);
-        // Return the text value
-        return $hydrated;
     }
 
     abstract public function getValue($formatted=true);
