@@ -5,7 +5,7 @@ namespace Sackrin\Meta;
 class MetaFields {
 
     /**
-     * Indicates if Passport migrations will be run.
+     * Indicates if migrations will be run.
      *
      * @var bool
      */

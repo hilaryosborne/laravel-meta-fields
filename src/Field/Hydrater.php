@@ -11,9 +11,9 @@ class Hydrater {
     public $index;
 
     public function __construct() {
-        // The field objects
+        // Where to store the hydrated fields
         $this->hydrated = collect([]);
-        // Create a hydrated collection object
+        // Where to store the latest index
         $this->index = collect([]);
     }
 
@@ -44,39 +44,21 @@ class Hydrater {
             $hydrated->push($blueprint->hydrate($value));
         });
         // Update the current hydrated collection
-        $this->hydrated = $hydrated;
+        $this->setHydrated($hydrated);
         // Rebuild the index after each field is added
         $this->reIndex();
         // Return for chaining
         return $this;
     }
 
-    public function getHydrated($path) {
-        // Retrieve the field object index
-        $fieldObjects = $this->toObjects();
-        // If the field does not exist then return null
-        if (!isset($fieldObjects[$path])) { return null; }
-        // Retrieve the field object from the field indexer
-        return $fieldObjects[$path];
+    public function getHydrated() {
+        // Return the found field
+        return $this->hydrated;
     }
 
-    public function setHydrated($path) {
-        // Retrieve the field object index
-        $fieldObjects = $this->toObjects();
-        // If the field does not exist then return null
-        if (!isset($fieldObjects[$path])) { return null; }
-        // Retrieve the field object from the field indexer
-        return $fieldObjects[$path];
-    }
-
-    public function reIndex() {
-        // Reset the field collection
-        $this->index = collect([]);
-        // Loop through each of the sub fields
-        foreach ($this->hydrated as $k => $blueprint) {
-            // Convert the sub field to index
-            $blueprint->toPath($this->index);
-        }
+    public function setHydrated($fields) {
+        // Update the current hydrated collection
+        $this->hydrated = collect($fields);
         // Return for chaining
         return $this;
     }
@@ -86,47 +68,54 @@ class Hydrater {
         return $this->index;
     }
 
+    public function reIndex() {
+        // Reset the index collection
+        $index = collect([]);
+        // Loop through each of the hydrated fields
+        $this->getHydrated()->each(function($field,$k) use ($index) {
+            // Pass each field through the toPath process
+            $field->toPath($index);
+        });
+        // Replace the current index value
+        $this->index = $index;
+        // Return for chaining
+        return $this;
+    }
+
     public function toObjects() {
-        // Retrieve the current field index
+        // Retrieve the current blueprint index
+        // Since the index is stored as reference => object we don't need to do anything to it
         return $this->getIndex();
     }
 
     public function toClasses() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $blueprint, $key){
-            // Return the path with the classname
+        // Return a collection with the reference => classname pairing
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
+            // Determine the classname and the reference route
             return [$key => get_class($blueprint)];
         });
     }
 
     public function toOptions() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $blueprint, $key){
-            // Return the path with the classname
+        // Return a collection with the reference => options pairing
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
+            // Determine the options and the reference route
             return [$key => $blueprint->getOptions()];
         });
     }
 
     public function toValues() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $blueprint, $key){
-            // Return the path with the classname
+        // Create a new collection with the path and value
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
+            // Determine the value and the reference route
             return [$key => $blueprint->getValue()];
         });
     }
 
     public function toDefaults() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $field, $key){
-            // Return the path with the classname
+        // Create a new collection with the path and default
+        return $this->getIndex()->mapWithKeys(function(Field $field, $key){
+            // Determine the default value and the reference route
             return [$key => $field->getDefault()];
         });
     }

@@ -40,7 +40,6 @@ class Blueprint {
         return $blueprints[$path];
     }
 
-
     public function getIndex() {
         // Retrieve the index collection
         return $this->index;
@@ -60,7 +59,6 @@ class Blueprint {
         return $this;
     }
 
-
     public function toObjects() {
         // Retrieve the current blueprint index
         // Since the index is stored as reference => object we don't need to do anything to it
@@ -68,41 +66,33 @@ class Blueprint {
     }
 
     public function toClasses() {
-        // Retrieve the current blueprint index
-        $index = $this->getIndex();
         // Return a collection with the reference => classname pairing
-        return $index->mapWithKeys(function(Field $blueprint, $key){
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
             // Determine the classname and the reference route
             return [$key => get_class($blueprint)];
         });
     }
 
     public function toOptions() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $blueprint, $key){
-            // Return the path with the classname
+        // Return a collection with the reference => options pairing
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
+            // Determine the options and the reference route
             return [$key => $blueprint->getOptions()];
         });
     }
 
     public function toValues() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $blueprint, $key){
-            // Return the path with the classname
+        // Create a new collection with the path and value
+        return $this->getIndex()->mapWithKeys(function(Field $blueprint, $key){
+            // Determine the value and the reference route
             return [$key => $blueprint->getValue()];
         });
     }
 
     public function toDefaults() {
-        // Retrieve the current field index
-        $index = $this->getIndex();
-        // Create a new collection with the path and classname
-        return $index->mapWithKeys(function(Field $field, $key){
-            // Return the path with the classname
+        // Create a new collection with the path and default
+        return $this->getIndex()->mapWithKeys(function(Field $field, $key){
+            // Determine the default value and the reference route
             return [$key => $field->getDefault()];
         });
     }
