@@ -2,6 +2,7 @@
 
 namespace Sackrin\Meta\Field\Type;
 
+use Illuminate\Support\Collection;
 use Sackrin\Meta\Field\Field;
 
 class Group extends Field {
@@ -27,144 +28,137 @@ class Group extends Field {
         $this->blueprints = collect([]);
     }
 
-
-
     public function cloneField() {
         // Create a new instance of this field object
         $instance = new static($this->getMachine());
         // Inject the cloned options
         $instance->setOptions($this->options);
-        // Inject the cloned field objects
-        $instance->setHydrated($this->getHydrated());
-        // Inject the cloned template objects
+        // Inject the cloned blueprint objects
         $instance->setBlueprints($this->getBlueprints());
-        // Inject the cloned values
-        $instance->setValue($this->getValue());
-        // Ensue this field is set as a blueprint
-        $instance->isBlueprint = $this->isBlueprint;
-        $instance->isHydrated = $this->isHydrated;
+        // Inject the cloned hydrated objects
+        $instance->setHydrated($this->getHydrated());
+        // Inject the cloned value
+        $instance->value = $this->getValue();
         // Return the copied instance
         return $instance;
     }
 
-
-
     public function setBlueprints($blueprints) {
-        // Set the new template collection
+        // Set the new blueprint collection
         $this->blueprints = collect($blueprints);
         // Return for chaining
         return $this;
     }
 
     public function getBlueprints() {
-        // Return the template collection
+        // Return the blueprint collection
         return $this->blueprints;
     }
 
     public function addBlueprint(Field $field) {
         // Set the field parent
-        $field->setParentField($this);
-        // Add to the fields collection
+        $field->setParent($this);
+        // Add to the blueprint collection
         $this->getBlueprints()->push($field);
         // Return for chaining
         return $this;
     }
 
     public function childReference(Field $field) {
-        // Return the path with a placeholder for the repeater child
+        // Return the reference with the child machine code
         return $this->getPath().'.'.$field->getMachine();
     }
 
-    public function toReference($collection) {
-        // Set the field in the index collection
+    public function toReference(Collection $collection) {
+        // Set the group field in the provided index collection
         $collection->put($this->getReference(), $this);
-        // Retrieve the fields which would be relevant
-        $fields = $this->getBlueprints();
-        // Loop through each of the sub fields
-        foreach ($fields as $k => $field) {
-            // Convert the sub field to index
-            $field->toReference($collection);
+        // Retrieve the blueprints
+        $blueprints = $this->getBlueprints();
+        // Loop through each of the blueprints
+        foreach ($blueprints as $k => $blueprint) {
+            // Pass each blueprint through the to reference process
+            $blueprint->toReference($collection);
         }
+        // Return for chaining
+        return $this;
     }
 
-
-
     public function setHydrated($hydrated) {
-        // Return the template collection
-        $this->hydrated = $hydrated;
+        // Set the hydrated collection
+        $this->hydrated = collect($hydrated);
         // Return for chaining
         return $this;
     }
 
     public function getHydrated() {
-        // Return the template collection
+        // Return the hydrated collection
         return $this->hydrated;
     }
 
     public function addHydrated(Field $field) {
         // Set the field parent
-        $field->setParentField($this);
-        // Add to the fields collection
+        $field->setParent($this);
+        // Add to the hydrated collection
         $this->getHydrated()->push($field);
         // Return for chaining
         return $this;
     }
 
     public function childPath(Field $field) {
-        // Return the path with a placeholder for the repeater child
+        // Return the path with the child machine code
         return $this->getPath().'.'.$field->getMachine();
     }
 
-    public function toPath($collection) {
-        // Set the field in the index collection
+    public function toPath(Collection $collection) {
+        // Set the group field in the provided index collection
         $collection->put($this->getPath(), $this);
         // Retrieve the fields which would be relevant
-        $fields = $this->getHydrated();
-        // Loop through each of the sub fields
-        foreach ($fields as $k => $field) {
-            // Convert the sub field to index
+        $hydrated = $this->getHydrated();
+        // Loop through each of the hydrated fields
+        foreach ($hydrated as $k => $field) {
+            // Pass the provided field object through the to path process
             $field->toPath($collection);
         }
+        // Return for chaining
+        return $this;
     }
 
     public function hydrate($values) {
         // Create a copy to hydrate
         $cloned = $this->cloneField();
-        // Reset the fields to an empty collection
+        // Reset the hydrated fields to an empty collection
         $cloned->setHydrated(collect([]));
-        // Inject the raw new values
+        // Inject the raw values to this field
         $cloned->value = $values;
-        // Loop through each of the fields
-        foreach ($this->getBlueprints() as $k => $field) {
-            // Retrieve the field machine code
-            $fieldMachine = $field->getMachine();
-            // Retrieve the field value
+        // Loop through each of the blueprints
+        foreach ($this->getBlueprints() as $k => $blueprint) {
+            // Retrieve the blueprint machine code
+            $fieldMachine = $blueprint->getMachine();
+            // Retrieve the provided field value value
             $fieldValue = isset($values[$fieldMachine]) ? $values[$fieldMachine] : null;
-            // Hydrate the field
-            $clonedField = $field->hydrate($fieldValue);
-            // Add the field into the hydrated group
+            // Hydrate the field and retrieve the hydrated instances
+            $clonedField = $blueprint->hydrate($fieldValue);
+            // Add the hydrated field into the hydrated group
             $cloned->addHydrated($clonedField);
         }
-        // Return the text value
+        // Return for chaining
         return $cloned;
     }
 
-
-
     public function setValue($values) {
-        // Inject the raw new values
+        // Inject the raw values to this field
         $this->value = $values;
-        // Reset the fields to an empty collection
+        // Reset the hydrated fields to an empty collection
         $this->setHydrated(collect([]));
-        // Loop through each of the fields
-        foreach ($this->getBlueprints() as $k => $field) {
-            // Retrieve the field machine code
-            $fieldMachine = $field->getMachine();
-            // Retrieve the field value
+        // Loop through each of the blueprints
+        foreach ($this->getBlueprints() as $k => $blueprint) {
+            // Retrieve the blueprint machine code
+            $fieldMachine = $blueprint->getMachine();
+            // Retrieve the provided field value value
             $fieldValue = isset($values[$fieldMachine]) ? $values[$fieldMachine] : null;
-            // Hydrate the field
-            $clonedField = $field->hydrate($fieldValue);
-            // Add the field into the hydrated group
+            // Hydrate the field and retrieve the hydrated instances
+            $clonedField = $blueprint->hydrate($fieldValue);
+            // Add the hydrated field into the hydrated group
             $this->addHydrated($clonedField);
         }
         // Return for chaining
@@ -176,13 +170,13 @@ class Group extends Field {
         return $this->value;
     }
 
-    public static function serialize($value) {
-
-        return count($value);
+    public function serialize() {
+        // Return a count of the number of hydrated field values
+        return count($this->getHydrated());
     }
 
     public static function unserialize($value) {
-
+        // Return null because the group does not need this information
         return null;
     }
 

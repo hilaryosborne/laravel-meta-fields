@@ -20,10 +20,18 @@ class Text extends Field {
 
     public static $type = 'text';
 
-    public $value;
-
     public function getValue($formatted=true) {
-        // Initially just return a raw value
+        // Return the current value
         return $this->value;
+    }
+
+    public function serialize() {
+        // Return the provided
+        return $this->getValue(false);
+    }
+
+    public static function unserialize($serialized) {
+        // Return the provided value
+        return $serialized;
     }
 }

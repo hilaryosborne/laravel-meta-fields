@@ -2,6 +2,8 @@
 
 namespace Sackrin\Meta\Field;
 
+use Illuminate\Support\Collection;
+
 abstract class Field {
 
     public $parentField;
@@ -11,10 +13,6 @@ abstract class Field {
     public $value;
 
     public $position;
-
-    public $isHydrated = false;
-
-    public $isBlueprint = false;
 
     public static $defaults = [
         'machine' => '',
@@ -26,104 +24,96 @@ abstract class Field {
 
     public function __construct($machine) {
         // Populate with the defaults for the field
-        $this->options = static::$defaults;
-        // Update the field options values
-        $this->options['machine'] = $machine;
+        $this->setOptions(static::$defaults);
+        // Set the field machine code
+        $this->setMachine($machine);
     }
 
-    public function setParentField($parentField) {
+    public function setParent(Field $parentField) {
         // Save the parentField for future use
         $this->parentField = $parentField;
         // Return for chaining
         return $this;
     }
 
-    public function setOptions($options) {
-        // Update the options with the options
-        $this->options = array_merge($this->options, $options);
+    public function getParent() {
+        // Return the parent field object
+        return $this->parentField;
+    }
+
+    public function setOptions($options, $merge=true) {
+        // Replace or merge the new options with the existing options
+        $this->options = $merge ? array_merge($this->options, $options) : $options;
         // Return for chaining
         return $this;
     }
 
-    public function getPath() {
-        // Determine the machine code
-        $machine = $this->options['machine'];
-        // If a parentField object was returned
-        if ($this->parentField) {
-            // Merge with the parentField's code
-            return $this->parentField->childPath($this);
-        } // Otherwise return the standard key
-        else { return $machine; }
-    }
-
-    public function getReference() {
-        // Determine the machine code
-        $machine = $this->options['machine'];
-        // If a parentField object was returned
-        if ($this->parentField) {
-            // Merge with the parentField's code
-            return $this->parentField->childReference($this);
-        } // Otherwise return the standard key
-        else { return $machine; }
-    }
-
-    public function getMachine() {
-        // Update the field options values
-        return $this->options['machine'];
-    }
-
     public function getOptions() {
-
+        // Retrieve the field options
         return $this->options;
     }
 
+    public function setMachine($machine) {
+        // Set the field machine code
+        $this->options['machine'] = $machine;
+        // Return for chaining
+        return $this;
+    }
+
+    public function getMachine() {
+        // Return the field machine code
+        return $this->options['machine'];
+    }
+
     public function setInstructions($instructions) {
-        // Set the setting option value
+        // Set the instruction options value
         $this->options['instructions'] = $instructions;
         // Return for chaining
         return $this;
     }
 
+    public function getInstructions() {
+        // Return the instructions value
+        return $this->options['instructions'];
+    }
+
     public function setRequired($required) {
-        // Set the setting option value
-        $this->options['required'] = $required;
+        // Set the required option value
+        $this->options['required'] = (bool)$required;
         // Return for chaining
         return $this;
     }
 
-    public function getDefault() {
-
-        return $this->options['default_value'];
+    public function getRequired() {
+        // Return the required value
+        return (bool)$this->options['required'];
     }
 
     public function setDefault($default) {
-        // Set the setting option value
+        // Set the field's default value
         $this->options['default_value'] = $default;
         // Return for chaining
         return $this;
     }
 
-    public function getPosition() {
-
-        return $this->position;
+    public function getDefault() {
+        // Return the field's default value
+        return $this->options['default_value'];
     }
 
+
     public function setPosition($position) {
-        // Populate the value
-        $this->position = $position;
+        // Set the field's current child position
+        $this->position = (int)$position;
         // Return for chaining
         return $this;
     }
 
-    public function toReference($collection) {
-        // Set the field in the index collection
-        $collection->put($this->getReference(), $this);
+    public function getPosition() {
+        // Return the field's position
+        return (int)$this->position;
     }
 
-    public function toPath($collection) {
-        // Set the field in the index collection
-        $collection->put($this->getPath(), $this);
-    }
 
     public function cloneField() {
         // Create a new instance of this field object
@@ -132,11 +122,42 @@ abstract class Field {
         $instance->setOptions($this->getOptions());
         // Inject the cloned values
         $instance->setValue($this->getValue());
-        // Ensue this field is set as a blueprint
-        $instance->isBlueprint = $this->isBlueprint;
-        $instance->isHydrated = $this->isHydrated;
         // Return the copied instance
         return $instance;
+    }
+
+
+    public function getReference() {
+        // If this field have a parent field
+        if ($this->getParent()) {
+            // Allow the parent to determine the child's reference
+            return $this->getParent()->childReference($this);
+        } // Otherwise return just the machine key
+        else { return $this->getMachine(); }
+    }
+
+    public function toReference(Collection $collection) {
+        // Add this field's reference route to the provided index collection
+        $collection->put($this->getReference(), $this);
+        // Return for chaining
+        return $this;
+    }
+
+
+    public function getPath() {
+        // If this field have a parent field
+        if ($this->getParent()) {
+            // Allow the parent to determine the child's path
+            return $this->getParent()->childPath($this);
+        } // Otherwise return just the machine key
+        else { return $this->getMachine(); }
+    }
+
+    public function toPath(Collection $collection) {
+        // Add this field's path route to the provided index collection
+        $collection->put($this->getPath(), $this);
+        // Return for chaining
+        return $this;
     }
 
     public function hydrate($value) {
@@ -144,9 +165,6 @@ abstract class Field {
         $instance = $this->cloneField();
         // Hydrate the field
         $instance->value = $value;
-        // Ensue this field is set as a blueprint
-        $instance->isBlueprint = false;
-        $instance->isHydrated = true;
         // Return the text value
         return $instance;
     }
@@ -158,17 +176,10 @@ abstract class Field {
         return $this;
     }
 
-    public static function serialize($value) {
-
-        return $value;
-    }
-
-    public static function unserialize($value) {
-
-        return $value;
-    }
-
     abstract public function getValue($formatted=true);
 
+    abstract public function serialize();
+
+    abstract public static function unserialize($serialized);
 
 }

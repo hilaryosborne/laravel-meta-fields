@@ -29,12 +29,22 @@ class Hydrater {
         return $this->blueprint;
     }
 
-    public function hydrate($field) {
-        // Ensue this field is set as a blueprint
-        $field->isBlueprint = true;
-        $field->isHydrated = false;
-        // Add to the fields collection
-        $this->hydrated->push($field);
+    public function hydrate($values) {
+        // Retrieve the meta field blueprints
+        $blueprints = $this->getBlueprint()->getBlueprints();
+        // Create a collection to store the hydrated fields
+        $hydrated = collect([]);
+        // Loop through each of the blueprints and hydrate
+        $blueprints->each(function(Field $blueprint, $k) use ($hydrated, $values) {
+            // Retrieve the field machine code
+            $machine = $blueprint->getMachine();
+            // Retrieve the field value
+            $value = isset($values[$machine]) ? $values[$machine] : null;
+            // Retrieve the hydrated field instance
+            $hydrated->push($blueprint->hydrate($value));
+        });
+        // Update the current hydrated collection
+        $this->hydrated = $hydrated;
         // Rebuild the index after each field is added
         $this->reIndex();
         // Return for chaining
@@ -119,56 +129,6 @@ class Hydrater {
             // Return the path with the classname
             return [$key => $field->getDefault()];
         });
-    }
-
-    /**
-     * Get Meta Field
-     * @param $path
-     * @param string $format
-     * @return mixed
-     */
-    public function getField($path,$format='value') {
-        // Retrieve the current field indexer
-        $fieldIndexer = $this->getIndexer();
-        // Retrieve the field object index
-        $fieldObjects = $fieldIndexer->toObjects();
-        // If the field does not exist then return null
-        if (!isset($fieldObjects[$path])) { return null; }
-        // Retrieve the field object from the field indexer
-        $field = $fieldObjects[$path];
-        // Return the required field value
-        switch(strtolower($format)) {
-            // Return formatted values
-            case 'default' : return $field->getDefault(true); break;
-            case 'value' : return $field->getValue(true); break;
-            case 'raw' : return $field->getValue(false); break;
-            case 'object' : return $field; break;
-            // Return the formatted value by defaultT974G28T
-            default : return $field->getValue(true); break;
-        }
-    }
-
-    /**
-     * Set Meta Field
-     * @param $path
-     * @param $value
-     * @return mixed
-     */
-    public function setField($path,$value) {
-        // Retrieve the current field indexer
-        $fieldIndexer = $this->getIndexer();
-        // Retrieve the field object index
-        $fieldObjects = $fieldIndexer->toObjects();
-        // If the field does not exist then return null
-        if (!isset($fieldObjects[$path])) { return $this; }
-        // Retrieve the field object from the field indexer
-        $field = $fieldObjects[$path];
-        // Set the field value
-        $field->setValue($value,true);
-        // Rebuild the field index
-        $fieldIndexer->build();
-        // Return for chaining
-        return $this;
     }
 
 }
