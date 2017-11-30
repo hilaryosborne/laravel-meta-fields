@@ -81,7 +81,7 @@ class PersonMeta extends Model {
     protected $fillable = ['machine', 'reference', 'path', 'position', 'type', 'value'];
 
     /**
-     * Get the author of the post.
+     * Get the owner of the meta field
      */
     public function person()
     {
